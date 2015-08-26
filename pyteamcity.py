@@ -114,10 +114,11 @@ class TeamCity:
     port = None
     error_handler = None
 
-    def __init__(self, username=None, password=None, server=None, port=None,
-                 session=None):
+    def __init__(self, username=None, password=None, scheme=None,
+                 server=None, port=None, session=None):
         self.username = username or os.getenv('TEAMCITY_USER')
         self.password = password or os.getenv('TEAMCITY_PASSWORD')
+        self.scheme = scheme or os.getenv('TEAMCITY_SCHEME')
         self.host = server or os.getenv('TEAMCITY_HOST')
         self.port = port or int(os.getenv('TEAMCITY_PORT', 0)) or 80
         self.base_base_url = "http://%s:%d" % (self.host, self.port)

@@ -8,10 +8,11 @@ from pyteamcity import TeamCity, HTTPError
 
 user = 'TEAMCITY_USER'
 password = 'TEAMCITY_PASSWORD'
+scheme = "http"
 host = 'TEAMCITY_HOST'
 port = 4567
 
-tc = TeamCity(user, password, host, port)
+tc = TeamCity(user, password, scheme, host, port)
 
 
 def test_get_all_users():
