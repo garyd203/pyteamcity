@@ -366,6 +366,14 @@ class TeamCity:
             url,
             headers={'Content-Type': 'application/xml'},
             data=data)
+        
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            raise HTTPError(response.text,
+                            url=url,
+                            status_code=response.status_code)
+        
 
         root = ET.fromstring(response.text)
         new_build_attributes = root.findall('.')[0].attrib
