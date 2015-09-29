@@ -75,13 +75,15 @@ def endpoint(url_pattern, method='GET'):
         def inner_func(self, *args, **kwargs):
             kwargs['base_url'] = self.base_url
             url = get_url(*args, **kwargs)
-            request = self._get_request('GET', url)
+            request = self._get_request(method, url)
             return_type = kwargs.get('return_type', 'data')
             if return_type == 'url':
                 return url
             if return_type == 'request':
                 return request
-            if method == 'GET':
+            if method == 'DELETE':
+                response = self._delete(url)
+            elif method == 'GET':
                 response = self._get(url)
             elif method == 'POST':
                 response = self._post(url)
@@ -97,6 +99,10 @@ def endpoint(url_pattern, method='GET'):
                 return response.text
         return inner_func
     return wrapped_func
+
+
+def DELETE(url_pattern):
+    return endpoint(url_pattern, method='DELETE')
 
 
 def GET(url_pattern):
@@ -148,6 +154,10 @@ class TeamCity:
             headers=headers,
             **kwargs).prepare()
 
+    def _delete(self, url, **kwargs):
+        request = self._get_request('DELETE', url, **kwargs)
+        return self._send_request(request)
+
     def _get(self, url, **kwargs):
         request = self._get_request('GET', url, **kwargs)
         return self._send_request(request)
@@ -179,6 +189,40 @@ class TeamCity:
         Gets all plugins in the TeamCity server pointed to by this instance of
         the Client.
         """
+
+    def delete_builds(self,
+                   build_type_id='', branch='', status='', running='',
+                   tags=None,
+                   user=None, project='',
+                   **kwargs):
+        """Delete a (series of) builds."""
+        # Create a build locator
+        _get_locator_kwargs = {}
+        if branch:
+            _get_locator_kwargs['branch'] = branch
+        if build_type_id:
+            _get_locator_kwargs['build_type'] = build_type_id
+        if status:
+            _get_locator_kwargs['status'] = status
+        if running:
+            _get_locator_kwargs['running'] = running
+        if tags:
+            _get_locator_kwargs['tags'] = tags
+        if user:
+            _get_locator_kwargs['user'] = user
+        if project:
+            _get_locator_kwargs['project'] = project
+
+        locator = self._get_locator(**_get_locator_kwargs)
+        if not locator.strip():
+            raise ValueError("The builds to be deleted must be specified")
+
+        return self._delete_builds_by_locator(locator, **kwargs)
+
+    @DELETE('builds/?locator={locator}')
+    def _delete_builds_by_locator(self, locator):
+        """"Delete all builds that match the given locator."""
+        pass
 
     def get_builds(self,
                    build_type_id='', branch='', status='', running='',
@@ -217,6 +261,7 @@ class TeamCity:
         if not kwargs:
             return ''
 
+        #TODO what if one of the params is an empty string, and that makes no sense? (eg. branch)
         # Sort kwargs.items() so that ordering is deterministic, which is very
         # handy for automated tests
         return ','.join('%s:%s' % (_underscore_to_camel_case(k), v)
@@ -366,14 +411,13 @@ class TeamCity:
             url,
             headers={'Content-Type': 'application/xml'},
             data=data)
-        
+
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             raise HTTPError(response.text,
                             url=url,
                             status_code=response.status_code)
-        
 
         root = ET.fromstring(response.text)
         new_build_attributes = root.findall('.')[0].attrib

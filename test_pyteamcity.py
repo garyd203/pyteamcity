@@ -209,6 +209,18 @@ def make_response(status_code, data):
     return response
 
 
+def test_delete_builds_by_branch():
+    expected_url = ('http://TEAMCITY_HOST:4567/httpAuth/app/rest/'
+                    'builds/'
+                    '?locator=branch:master'
+                    )
+    url = tc.delete_builds(branch='master', return_type='url')
+    assert url == expected_url
+
+    req = tc.delete_builds(branch='master', return_type='request')
+    assert req.method == 'DELETE'
+    assert req.url == expected_url
+
 def test_get_builds_mock_send():
     with mock.patch.object(tc.session, 'send') as mock_send:
         expected_data = {
